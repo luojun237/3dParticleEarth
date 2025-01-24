@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-
+import { polarToCartesian, latLonMidPointMul,map } from './utils'
 
 class Earth {
   constructor(container,options) {
@@ -37,6 +37,7 @@ class Earth {
     // 创建地球
     this.loadAllImage().then(()=>{
       this.createEarth()
+      this.createLines()
     })
 
     // 自适应窗口
@@ -106,7 +107,6 @@ class Earth {
     this.earth = new THREE.Mesh(geometry, material);
     this.scene.add(this.earth);
     this.createParticles();
-    this.createLines();
   }
 
   createParticles(){
@@ -148,38 +148,65 @@ class Earth {
 
   // 创建飞线
   createLines(){
-    // 北极
-    const s1 = [0.0,90.0]
-    // 南极 
-    const s2 = [0.0,-90.0]
+    this.options.lines.forEach((item)=>{
+      const {start,end} = item
+      // 起点向量
+      const vec1 = this.latLongToVector3(start[1],start[0],3)
+      // 终点向量
+      const vec2 = this.latLongToVector3(end[1],end[0],3)
 
-    // 将经纬度转换为3D坐标
-    const s1Vector = this.latLongToVector3(s1[1],s1[0],3)
-    const s2Vector = this.latLongToVector3(s2[1],s2[0],3)
+      // 计算两个向量夹角，角度在0-pi之间
+      const angle = vec1.angleTo(vec2)
+      if(angle>0){
 
-    // 创建一条曲线
-    const curve = new THREE.CubicBezierCurve3(
-        s1Vector,
-        new THREE.Vector3(3.0,3.5,0.0),
-        new THREE.Vector3(3.0,-3.5,0.0),
-        s2Vector
-    );
+      }
 
-    // 根据曲线生成几何体
-    const points = curve.getPoints(50);
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      // 计算距离
+      // const dist = vec1.distanceTo(vec2)
+      // let scalar;
+      // const radius = 3.0;
+      // const ctrl1 = new THREE.Vector3();
+      // const ctrl2 = new THREE.Vector3();
+      // if (dist > radius * 1.85) { //距离和radius乘以一个系数比较，获取scale                                          
+      //   scalar = map(dist, 0, radius * 2, 1, 3.25);
+      // } else if (dist > radius * 1.4) {
+      //   scalar = map(dist, 0, radius * 2, 1, 2.3);
+      // } else {
+      //   scalar = map(dist, 0, radius * 2, 1, 1.5);
+      // }
 
-    // 创建线条材质
-    const material = new THREE.LineBasicMaterial({
-        color: 0x00ffff,  // 青色
-        transparent: true,
-        opacity: 0.8,
-        linewidth: 1
-    });
+      
+      // const midPoint = latLonMidPointMul([
+      //   {lat:start[1],lon:start[0]},
+      //   {lat:end[1],lon:end[0]}
+      // ]);  //获取中点
+      // const vecMid = polarToCartesian(midPoint[0], midPoint[1], radius * scalar);
 
-    // 创建线条
-    const line = new THREE.Line(geometry, material);
-    this.scene.add(line);
+      // ctrl1.copy(vecMid);
+      // ctrl2.copy(vecMid);
+
+      // const t1 = map(dist, 10, 30, 0.2, 0.15);    //[10,30] => [0.2, 0.15]
+      // const t2 = map(dist, 10, 30, 0.8, 0.85);    //[10,30] => [0.8, 0.85]
+      // scalar = map(dist, 0, radius * 2, 1, 1.7);
+
+      // const tempCurve = new THREE.CubicBezierCurve3(vec1, ctrl1, ctrl2, vec2);       //建立临时三维贝塞尔曲线
+      // tempCurve.getPoint(t1, ctrl1);        //根据t1设置ctrl1点
+      // tempCurve.getPoint(t2, ctrl2);        //根据t2设置ctrl2点
+      // ctrl1.multiplyScalar(scalar);         //根据scale放大
+      // ctrl2.multiplyScalar(scalar);
+
+      //const curve = new THREE.CubicBezierCurve3(vec1, ctrl1, ctrl2, vec2);           //建立三维贝塞尔曲线
+      const curve = new THREE.CatmullRomCurve3([
+        vec1,
+        new THREE.Vector3(4.0,0,0),
+        vec2,
+      ])
+      const points = curve.getPoints(50);
+      const geometry = new THREE.BufferGeometry().setFromPoints( points );
+      const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+      const line = new THREE.Line(geometry, material);
+      this.scene.add(line);
+    })
   }
 
   // 经纬度转换为3D空间坐标,lat纬度，lng经度，radius半径,南半球纬度为负，东半球经度为正
