@@ -148,24 +148,6 @@ class Earth {
 
   // 创建飞线
   createLines(){
-    const step = 24
-    // 定义角度
-    const angle = Math.PI/step
-    const mat = []
-
-    for(let i=0;i<=step;i++){
-      const vec = new THREE.Vector3()
-      const m = 3.0 + 2.0*Math.sin(angle*i)
-      vec.x = m*Math.sin(angle*i)
-      vec.y = m*Math.cos(angle*i)
-      vec.z = 0
-      mat.push(vec)
-    }
-   
-
-
-
-
     this.options.lines.forEach((item)=>{
       const {start,end} = item
       // 起点向量
@@ -173,47 +155,16 @@ class Earth {
       // 终点向量
       const vec2 = this.latLongToVector3(end[1],end[0],3)
 
-      
+     // 求解vec1和vec3的夹角，范围在[0,180]
+     const angle = vec1.angleTo(vec2)
+     const step = 12
+     const angleStep = angle / step
+     // 求解vec1和vec2的法向量
+     const normal = vec1.clone().cross(vec2).normalize()
+   
+    
 
-
-
-      // 计算距离
-      // const dist = vec1.distanceTo(vec2)
-      // let scalar;
-      // const radius = 3.0;
-      // const ctrl1 = new THREE.Vector3();
-      // const ctrl2 = new THREE.Vector3();
-      // if (dist > radius * 1.85) { //距离和radius乘以一个系数比较，获取scale                                          
-      //   scalar = map(dist, 0, radius * 2, 1, 3.25);
-      // } else if (dist > radius * 1.4) {
-      //   scalar = map(dist, 0, radius * 2, 1, 2.3);
-      // } else {
-      //   scalar = map(dist, 0, radius * 2, 1, 1.5);
-      // }
-
-      
-      // const midPoint = latLonMidPointMul([
-      //   {lat:start[1],lon:start[0]},
-      //   {lat:end[1],lon:end[0]}
-      // ]);  //获取中点
-      // const vecMid = polarToCartesian(midPoint[0], midPoint[1], radius * scalar);
-
-      // ctrl1.copy(vecMid);
-      // ctrl2.copy(vecMid);
-
-      // const t1 = map(dist, 10, 30, 0.2, 0.15);    //[10,30] => [0.2, 0.15]
-      // const t2 = map(dist, 10, 30, 0.8, 0.85);    //[10,30] => [0.8, 0.85]
-      // scalar = map(dist, 0, radius * 2, 1, 1.7);
-
-      // const tempCurve = new THREE.CubicBezierCurve3(vec1, ctrl1, ctrl2, vec2);       //建立临时三维贝塞尔曲线
-      // tempCurve.getPoint(t1, ctrl1);        //根据t1设置ctrl1点
-      // tempCurve.getPoint(t2, ctrl2);        //根据t2设置ctrl2点
-      // ctrl1.multiplyScalar(scalar);         //根据scale放大
-      // ctrl2.multiplyScalar(scalar);
-
-      //const curve = new THREE.CubicBezierCurve3(vec1, ctrl1, ctrl2, vec2);           //建立三维贝塞尔曲线
-      console.log('mat',mat)
-      const curve = new THREE.CatmullRomCurve3(mat)
+      const curve = new THREE.CubicBezierCurve3(vec1,vec3,vec3,vec2)
       const points = curve.getPoints(50);
       const geometry = new THREE.BufferGeometry().setFromPoints( points );
       const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });

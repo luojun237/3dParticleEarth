@@ -28,6 +28,7 @@ export function radiansToDegrees(radians) {
     return radians * RAD2DEG;
 }
 
+// 求解多个点的中点
 export function latLonMidPointMul(latlonArr){
     let x = 0,y = 0, z = 0;
     let lon,lat;
