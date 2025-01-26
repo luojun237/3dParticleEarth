@@ -148,6 +148,24 @@ class Earth {
 
   // 创建飞线
   createLines(){
+    const step = 24
+    // 定义角度
+    const angle = Math.PI/step
+    const mat = []
+
+    for(let i=0;i<=step;i++){
+      const vec = new THREE.Vector3()
+      const m = 3.0 + 2.0*Math.sin(angle*i)
+      vec.x = m*Math.sin(angle*i)
+      vec.y = m*Math.cos(angle*i)
+      vec.z = 0
+      mat.push(vec)
+    }
+   
+
+
+
+
     this.options.lines.forEach((item)=>{
       const {start,end} = item
       // 起点向量
@@ -155,11 +173,9 @@ class Earth {
       // 终点向量
       const vec2 = this.latLongToVector3(end[1],end[0],3)
 
-      // 计算两个向量夹角，角度在0-pi之间
-      const angle = vec1.angleTo(vec2)
-      if(angle>0){
+      
 
-      }
+
 
       // 计算距离
       // const dist = vec1.distanceTo(vec2)
@@ -196,11 +212,8 @@ class Earth {
       // ctrl2.multiplyScalar(scalar);
 
       //const curve = new THREE.CubicBezierCurve3(vec1, ctrl1, ctrl2, vec2);           //建立三维贝塞尔曲线
-      const curve = new THREE.CatmullRomCurve3([
-        vec1,
-        new THREE.Vector3(4.0,0,0),
-        vec2,
-      ])
+      console.log('mat',mat)
+      const curve = new THREE.CatmullRomCurve3(mat)
       const points = curve.getPoints(50);
       const geometry = new THREE.BufferGeometry().setFromPoints( points );
       const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
