@@ -155,21 +155,65 @@ class Earth {
       // 终点向量
       const vec2 = this.latLongToVector3(end[1],end[0],3)
 
+      const controlVec1 = new THREE.Vector3()
+      const controlVec2 = new THREE.Vector3()
+
+
      // 求解vec1和vec3的夹角，范围在[0,180]
      const angle = vec1.angleTo(vec2)
-     const step = 12
-     const angleStep = angle / step
-     // 求解vec1和vec2的法向量
-     const normal = vec1.clone().cross(vec2).normalize()
-   
-    
+     //console.log(angle)
 
-      const curve = new THREE.CubicBezierCurve3(vec1,vec3,vec3,vec2)
+    // if(angle === Math.PI){
+    //   // 求解垂直于vec1的向量以及垂直于vec2的向量
+    //   const vec3 = vec1.clone().cross(vec2).normalize()
+    //   // 求解同时垂直于vec1,vec2,vec3的向量
+    //   const vec4 = vec1.clone().cross(vec3).normalize()
+    //   // 设置一个偏移角度
+    //   const offsetAngle = Math.PI/1.3 
+    //   // 求解vec3逆时针绕vec4旋转offsetAngle的向量
+    //   const vec5 = vec3.clone().applyAxisAngle(vec4,offsetAngle)
+    //   // 求解vec3顺时针绕vec4旋转offsetAngle的向量
+    //   const vec6 = vec3.clone().applyAxisAngle(vec4,-offsetAngle)
+
+    //   controlVec1.copy(vec6)
+    //   controlVec2.copy(vec5)
+    //   controlVec1.multiplyScalar(6.0)
+    //   controlVec2.multiplyScalar(6.0)
+    // } else {
+      // 求解vec1和vec2相加的向量
+      const vec3 = vec1.clone().add(vec2).normalize()
+      // 求解同时垂直于vec1,vec2,vec3的向量
+      const vec4 = vec1.clone().cross(vec3).normalize()
+      // 设置一个偏移角度
+      const offsetAngle = (angle/2.0)* 0.4 
+      // 求解vec3逆时针绕vec4旋转offsetAngle的向量
+      const vec5 = vec3.clone().applyAxisAngle(vec4,offsetAngle)
+      // 求解vec3顺时针绕vec4旋转offsetAngle的向量
+      const vec6 = vec3.clone().applyAxisAngle(vec4,-offsetAngle)
+      // scale 根据angle来线性插值，angle在0-Math.PI之间，scale在3-5之间
+      const scale = 3.0 + 2.3*Math.sin(angle/2)
+      controlVec1.copy(vec6)
+      controlVec2.copy(vec5)
+      controlVec1.multiplyScalar(scale)
+      controlVec2.multiplyScalar(scale)
+
+
+
+
+    //}
+   
+
+
+      console.log('控制点',controlVec1,controlVec2)
+
+
+      const curve = new THREE.CubicBezierCurve3(vec1,controlVec1,controlVec2,vec2)
       const points = curve.getPoints(50);
       const geometry = new THREE.BufferGeometry().setFromPoints( points );
       const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
       const line = new THREE.Line(geometry, material);
       this.scene.add(line);
+
     })
   }
 
