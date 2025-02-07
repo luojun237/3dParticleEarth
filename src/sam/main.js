@@ -6,6 +6,7 @@ const earth = new Earth(document.getElementById('container'),{
     landColor:0x00ff00, // 陆地颜色
     waterColor:0x0A1034,
     imageAssets:['/images/earth.jpg'],
+    lineColor:0xff00ff, // 飞线颜色,粉色
     lines:[
         // 北极-南极
         {

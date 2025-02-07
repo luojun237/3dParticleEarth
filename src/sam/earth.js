@@ -34,6 +34,10 @@ class Earth {
     directionalLight.position.set(100, 100, 100);
     this.scene.add(directionalLight);
 
+    // 创建地球组
+    this.earthGroup = new THREE.Group();
+    this.scene.add(this.earthGroup);
+
     // 创建地球
     this.loadAllImage().then(()=>{
       this.createEarth()
@@ -94,7 +98,6 @@ class Earth {
   }
 
   createEarth() {
-    //this.earthParticles = new THREE.Object3D()
     // 创建球体几何体
     const geometry = new THREE.SphereGeometry(3, 64, 64);
     
@@ -105,7 +108,7 @@ class Earth {
 
     // 创建网格
     this.earth = new THREE.Mesh(geometry, material);
-    this.scene.add(this.earth);
+    this.earthGroup.add(this.earth);
     this.createParticles();
   }
 
@@ -141,7 +144,7 @@ class Earth {
         deepTest:true
     });
     this.earthPoints = new THREE.Points(geometry, material);
-    this.scene.add(this.earthPoints);
+    this.earthGroup.add(this.earthPoints);
   }
 
 
@@ -154,32 +157,10 @@ class Earth {
       const vec1 = this.latLongToVector3(start[1],start[0],3)
       // 终点向量
       const vec2 = this.latLongToVector3(end[1],end[0],3)
-
       const controlVec1 = new THREE.Vector3()
       const controlVec2 = new THREE.Vector3()
-
-
-     // 求解vec1和vec3的夹角，范围在[0,180]
-     const angle = vec1.angleTo(vec2)
-     //console.log(angle)
-
-    // if(angle === Math.PI){
-    //   // 求解垂直于vec1的向量以及垂直于vec2的向量
-    //   const vec3 = vec1.clone().cross(vec2).normalize()
-    //   // 求解同时垂直于vec1,vec2,vec3的向量
-    //   const vec4 = vec1.clone().cross(vec3).normalize()
-    //   // 设置一个偏移角度
-    //   const offsetAngle = Math.PI/1.3 
-    //   // 求解vec3逆时针绕vec4旋转offsetAngle的向量
-    //   const vec5 = vec3.clone().applyAxisAngle(vec4,offsetAngle)
-    //   // 求解vec3顺时针绕vec4旋转offsetAngle的向量
-    //   const vec6 = vec3.clone().applyAxisAngle(vec4,-offsetAngle)
-
-    //   controlVec1.copy(vec6)
-    //   controlVec2.copy(vec5)
-    //   controlVec1.multiplyScalar(6.0)
-    //   controlVec2.multiplyScalar(6.0)
-    // } else {
+      // 求解vec1和vec3的夹角，范围在[0,180]
+      const angle = vec1.angleTo(vec2)
       // 求解vec1和vec2相加的向量
       const vec3 = vec1.clone().add(vec2).normalize()
       // 求解同时垂直于vec1,vec2,vec3的向量
@@ -196,24 +177,50 @@ class Earth {
       controlVec2.copy(vec5)
       controlVec1.multiplyScalar(scale)
       controlVec2.multiplyScalar(scale)
-
-
-
-
-    //}
-   
-
-
-      console.log('控制点',controlVec1,controlVec2)
-
-
       const curve = new THREE.CubicBezierCurve3(vec1,controlVec1,controlVec2,vec2)
-      const points = curve.getPoints(50);
+      const points = curve.getPoints(100);
       const geometry = new THREE.BufferGeometry().setFromPoints( points );
-      const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+      // 给几何体绑定数据初始count=0
+      geometry.drawRange = {
+        start:0,
+        count:0
+      }
+      const material = new THREE.LineBasicMaterial({ color: this.options.lineColor });
       const line = new THREE.Line(geometry, material);
-      this.scene.add(line);
+      this.earthGroup.add(line);
 
+      // 创建圆形网格
+      const rippleGeometry = new THREE.CircleGeometry(1, 32);
+      const rippleMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0.0 },
+          uSpeed: { value: 1.0 },
+          uMaxRadius: { value: 5.0 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float uTime;
+          uniform float uSpeed;
+          uniform float uMaxRadius;
+          varying vec2 vUv;
+          void main() {
+            float radius = uTime * uSpeed;
+            float alpha = 1.0 - smoothstep(radius - 0.1, radius, length(vUv - 0.5) * uMaxRadius);
+            gl_FragColor = vec4(0.0, 0.5, 1.0, alpha);
+          }
+        `,
+        transparent: true,
+      });
+
+      const rippleMesh = new THREE.Mesh(rippleGeometry, rippleMaterial);
+      rippleMesh.position.set(vec2.x, vec2.y, vec2.z);
+      this.earthGroup.add(rippleMesh);
     })
   }
 
@@ -234,9 +241,25 @@ class Earth {
     requestAnimationFrame(this.animate.bind(this));
 
     // 地球自转
-    if(this.earthPoints) {
-      //this.earthPoints.rotation.y += 0.005;
+    if(this.earthGroup) {
+      this.earthGroup.rotation.y += 0.005;
+      // 更新飞线几何体的count
+      this.earthGroup.children.forEach((item)=>{
+        if(item instanceof THREE.Line){
+          item.geometry.drawRange.count += 1
+          if(item.geometry.drawRange.count > 100){
+            item.geometry.drawRange.count = 0
+          }
+        }
+      })
     }
+
+    // 更新时间
+    this.earthGroup.children.forEach((item)=>{
+      if(item instanceof THREE.Mesh && item.material instanceof THREE.ShaderMaterial){
+        item.material.uniforms.uTime.value += 0.01;
+      }
+    })
 
     this.renderer.render(this.scene, this.camera);
   }
