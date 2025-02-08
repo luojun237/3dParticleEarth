@@ -5,8 +5,27 @@ const earth = new Earth(document.getElementById('container'),{
     showAxis:true, // 是否显示坐标轴
     landColor:0x00ff00, // 陆地颜色
     waterColor:0x0A1034,
-    imageAssets:['/images/earth.jpg'],
+    radius:3.0,
+    imageAssets:['/images/earth.jpg','/images/wave.png'],
     lineColor:0xff00ff, // 飞线颜色,粉色
+    citys:[
+        {
+            name:'北京',
+            lat:39.90,
+            lng:116.39
+        },
+        {
+            name:'纽约',
+            lat:40.71,
+            lng:-74.00
+        },
+        {
+            name:'巴黎',
+            lat:48.85,
+            lng:2.35
+        },
+       
+    ],
     lines:[
         // 北极-南极
         {

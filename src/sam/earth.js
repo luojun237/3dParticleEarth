@@ -41,6 +41,7 @@ class Earth {
     // 创建地球
     this.loadAllImage().then(()=>{
       this.createEarth()
+      this.createWave()
       this.createLines()
     })
 
@@ -96,6 +97,41 @@ class Earth {
     let o = parseInt(height * f) // 根据横纵百分比计算图象坐标系中的坐标
     return 1 >= data.data[4 * (o *width + n)] // 查找底图中对应像素点的rgba值并判断
   }
+
+
+
+  createWave(){
+    const { width, height, data } = this.imageData[1];
+
+    this.options.citys.forEach((item) => {
+        const { lat, lng } = item;
+        const vec1 = this.latLongToVector3(lat, lng, this.options.radius);
+        const cityWaveGeometry = new THREE.PlaneGeometry(1, 1);
+        const texture = new THREE.Texture(data);
+        texture.needsUpdate = true; // 确保纹理更新
+
+        const cityWaveMaterial = new THREE.MeshBasicMaterial({
+            color: 0x22ffcc,
+            map: texture,
+            transparent: true,
+            opacity: 1, // 确保不透明
+            side: THREE.DoubleSide, // 双面可见
+            depthWrite: false,
+            depthTest: true // 禁用深度测试以避免渲染顺序问题
+        });
+
+        const cityWave = new THREE.Mesh(cityWaveGeometry, cityWaveMaterial);
+        cityWave.size = this.options.radius * 0.12;
+        cityWave.scale.set(cityWave.size, cityWave.size, cityWave.size);
+        cityWave.position.set(vec1.x, vec1.y, vec1.z);
+
+        cityWave.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), vec1.clone().normalize());
+        this.earthGroup.add(cityWave);
+    });
+  }
+
+
+
 
   createEarth() {
     // 创建球体几何体
@@ -188,39 +224,6 @@ class Earth {
       const material = new THREE.LineBasicMaterial({ color: this.options.lineColor });
       const line = new THREE.Line(geometry, material);
       this.earthGroup.add(line);
-
-      // 创建圆形网格
-      const rippleGeometry = new THREE.CircleGeometry(1, 32);
-      const rippleMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: 0.0 },
-          uSpeed: { value: 1.0 },
-          uMaxRadius: { value: 5.0 },
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          uniform float uTime;
-          uniform float uSpeed;
-          uniform float uMaxRadius;
-          varying vec2 vUv;
-          void main() {
-            float radius = uTime * uSpeed;
-            float alpha = 1.0 - smoothstep(radius - 0.1, radius, length(vUv - 0.5) * uMaxRadius);
-            gl_FragColor = vec4(0.0, 0.5, 1.0, alpha);
-          }
-        `,
-        transparent: true,
-      });
-
-      const rippleMesh = new THREE.Mesh(rippleGeometry, rippleMaterial);
-      rippleMesh.position.set(vec2.x, vec2.y, vec2.z);
-      this.earthGroup.add(rippleMesh);
     })
   }
 
